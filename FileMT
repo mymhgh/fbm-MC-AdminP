@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --border: #dee2e6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(120deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo i {
+            margin-right: 10px;
+        }
+        
+        .counters {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .counter {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .counter-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .counter-label {
+            font-size: 14px;
+        }
+        
+        .search-filter {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .search-bar {
+            position: relative;
+        }
+        
+        .search-bar input {
+            padding: 10px 15px 10px 40px;
+            border: none;
+            border-radius: 50px;
+            width: 300px;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-bar i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+        
+        .filter-dropdown {
+            position: relative;
+        }
+        
+        .filter-select {
+            padding: 10px 40px 10px 15px;
+            border: none;
+            border-radius: 50px;
+            appearance: none;
+            width: 150px;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background: white url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 15px center;
+            cursor: pointer;
+        }
+        
+        .status-tabs {
+            display: flex;
+            background: white;
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        
+        .status-tab {
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: center;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .status-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .file-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th {
+            background-color: var(--light);
+            font-weight: 600;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover {
+            background-color: var(--light);
+        }
+        
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:disabled {
+            background: var(--light-gray);
+            color: var(--gray);
+            cursor: not-allowed;
+        }
+        
+        .action-btn:hover:not(:disabled) {
+            background: var(--secondary);
+        }
+        
+        .dropdown-btn {
+            background: transparent;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+        
+        .dropdown-btn:hover {
+            color: var(--primary);
+        }
+        
+        .dropdown-content {
+            display: none;
+            padding: 20px;
+            background: var(--light);
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .dropdown-content.show {
+            display: block;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--gray);
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            width: 150px;
+            color: var(--dark);
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: var(--gray);
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+        
+        .btn-reject {
+            background: var(--warning);
+        }
+        
+        .btn-processing {
+            background: #ff9843;
+        }
+        
+        .btn-approve {
+            background: #2ecc71;
+        }
+        
+        .btn-back {
+            background: #9b59b6;
+        }
+        
+        .btn-receive {
+            background: #27ae60;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .notification.success {
+            background: #2ecc71;
+        }
+        
+        .notification.error {
+            background: #e74c3c;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-redo {
+            background: #e8d3f4;
+            color: #5e2d89;
+        }
+        
+        .status-received {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-back {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-new {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .select-all-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .bulk-actions {
+            display: none;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .bulk-actions.show {
+            display: flex;
+        }
+        
+        @media (max-width: 1200px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .search-filter {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .search-bar input {
+                width: 250px;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .search-filter {
+                flex-direction: column;
+            }
+            
+            .status-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .status-tab {
+                flex: 1 0 33%;
+                margin-bottom: 5px;
+                min-width: 100px;
+                font-size: 14px;
+                padding: 8px 10px;
+            }
+            
+            .file-table {
+                overflow-x: auto;
+            }
+            
+            table {
+                min-width: 800px;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                margin-bottom: 10px;
+            }
+            
+            .detail-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .counters {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-file-alt"></i>
+                    File Management System
+                </div>
+                
+                <div class="counters">
+                    <div class="counter">
+                        <div class="counter-value" id="dailyCounter">0</div>
+                        <div class="counter-label">Today's Files</div>
+                    </div>
+                    <div class="counter">
+                        <div class="counter-value" id="totalCounter">0</div>
+                        <div class="counter-label">Total Files</div>
+                    </div>
+                </div>
+                
+                <div class="search-filter">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search by UID or Timestamp...">
+                    </div>
+                    <div class="filter-dropdown">
+                        <select class="filter-select" id="platformFilter">
+                            <option value="all">All Platforms</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Gmail">Gmail</option>
+                            <option value="Instagram">Instagram</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="status-tabs">
+            <div class="status-tab active" data-status="all">All Files</div>
+            <div class="status-tab" data-status="new">New Files</div>
+            <div class="status-tab" data-status="processing">Processing</div>
+            <div class="status-tab" data-status="approved">Approved</div>
+            <div class="status-tab" data-status="pending">Pending</div>
+            <div class="status-tab" data-status="rejected">Rejected</div>
+            <div class="status-tab" data-status="redo">Re-Do</div>
+        </div>
+        
+        <div id="bulkActions" class="bulk-actions">
+            <button class="action-btn btn-back" id="btnBack">Back</button>
+            <button class="action-btn btn-receive" id="btnReceive">Receive</button>
+        </div>
+        
+        <div class="file-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="50px">
+                            <input type="checkbox" id="selectAllCheckbox">
+                        </th>
+                        <th>Code</th>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Account Type</th>
+                        <th>Submission Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="fileTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 30px;">
+                            <div class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--primary);"></i>
+                                <p>Loading data from Firebase...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+
+
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDUdL6cO1j2I5kL2Q2Z2Z2Z2Z2Z2Z2Z2Z2",
+    authDomain: "fbm-market-bot.firebaseapp.com",
+    databaseURL: "https://fbm-market-bot-default-rtdb.firebaseio.com",
+    projectId: "fbm-market-bot",
+    storageBucket: "fbm-market-bot.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcd1234efgh5678"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Telegram bot configuration
+const telegramBotToken = "7673657711:AAG9aHlpI8_Egvwi0fY9rxA4qyEfqOw16nU";
+
+// DOM elements
+const searchInput = document.getElementById('searchInput');
+const platformFilter = document.getElementById('platformFilter');
+const statusTabs = document.querySelectorAll('.status-tab');
+const fileTableBody = document.getElementById('fileTableBody');
+const notification = document.getElementById('notification');
+const dailyCounter = document.getElementById('dailyCounter');
+const totalCounter = document.getElementById('totalCounter');
+const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+const bulkActions = document.getElementById('bulkActions');
+const btnBack = document.getElementById('btnBack');
+const btnReceive = document.getElementById('btnReceive');
+
+// Current filters and data
+let currentPlatformFilter = 'all';
+let currentStatusFilter = 'all';
+let currentSearchTerm = '';
+let allSubmissions = [];
+let selectedFiles = new Set();
+
+// Initialize the application
+function initApp() {
+    // Load data from Firebase
+    loadSubmissions();
+    
+    // Set up event listeners
+    setupEventListeners();
+}
+
+// Load submissions from Firebase
+function loadSubmissions() {
+    const submissionsRef = database.ref('submissions');
+    
+    submissionsRef.on('value', (snapshot) => {
+        allSubmissions = [];
+        snapshot.forEach((childSnapshot) => {
+            const submission = childSnapshot.val();
+            submission.id = childSnapshot.key;
+            
+            // Set default status if not exists
+            if (!submission.status) {
+                submission.status = 'pending';
+            }
+            
+            // Set new status for files submitted today
+            const submissionDate = new Date(submission.timestamp || Date.now());
+            const today = new Date();
+            if (submissionDate.toDateString() === today.toDateString()) {
+                submission.isNew = true;
+            } else {
+                submission.isNew = false;
+            }
+            
+            allSubmissions.push(submission);
+        });
+        
+        // Update counters
+        updateCounters();
+        
+        // Render the table
+        renderTable();
+    }, (error) => {
+        showNotification('Error loading data: ' + error.message, 'error');
+    });
+}
+
+// Update counters
+function updateCounters() {
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const dailyCount = allSubmissions.filter(submission => {
+        const submissionDate = new Date(submission.timestamp || Date.now());
+        return submissionDate >= todayStart;
+    }).length;
+    
+    dailyCounter.textContent = dailyCount;
+    totalCounter.textContent = allSubmissions.length;
+}
+
+// Render the table based on current filters
+function renderTable() {
+    // Filter submissions based on current filters
+    let filteredSubmissions = allSubmissions.filter(submission => {
+        // Platform filter
+        if (currentPlatformFilter !== 'all' && submission.accountType !== currentPlatformFilter) {
+            return false;
+        }
+        
+        // Status filter
+        if (currentStatusFilter !== 'all') {
+            if (currentStatusFilter === 'new') {
+                if (!submission.isNew) return false;
+            } else if (submission.status !== currentStatusFilter) {
+                return false;
+            }
+        }
+        
+        // Search filter
+        if (currentSearchTerm !== '') {
+            const searchTerm = currentSearchTerm.toLowerCase();
+            const searchableFields = [
+                submission.telegramUserId?.toString(),
+                submission.timestamp?.toString()
+            ];
+            
+            const matches = searchableFields.some(field => 
+                field && field.toLowerCase().includes(searchTerm)
+            );
+            
+            if (!matches) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+    
+    // Sort by timestamp (newest first)
+    filteredSubmissions.sort((a, b) => {
+        return (b.timestamp || 0) - (a.timestamp || 0);
+    });
+    
+    // Generate table HTML
+    if (filteredSubmissions.length === 0) {
+        fileTableBody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 30px;">
+                    No submissions found matching the current filters.
+                </td>
+            </tr>
+        `;
+        bulkActions.classList.remove('show');
+        return;
+    }
+    
+    let tableHTML = '';
+    
+    filteredSubmissions.forEach((submission, index) => {
+        const submissionTime = submission.submissionTime || 'N/A';
+        const status = submission.status || 'pending';
+        const isSelected = selectedFiles.has(submission.id);
+        const timestampCode = submission.timestamp ? submission.timestamp.toString().slice(-6) : 'N/A';
+        
+        tableHTML += `
+            <tr>
+                <td>
+                    ${status === 'approved' ? `
+                        <input type="checkbox" class="file-checkbox" data-id="${submission.id}" ${isSelected ? 'checked' : ''}>
+                    ` : ''}
+                </td>
+                <td>${timestampCode}</td>
+                <td>${submission.telegramUserId || 'N/A'}</td>
+                <td>${submission.telegramFullName || submission.telegramUsername || 'N/A'}</td>
+                <td>${submission.accountType || 'N/A'}</td>
+                <td>${submissionTime}</td>
+                <td><span class="status-badge status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+                <td>
+                    <button class="dropdown-btn" data-id="${submission.id}"><i class="fas fa-chevron-down"></i></button>
+                </td>
+            </tr>
+            <tr class="detail-row" id="detail-${submission.id}">
+                <td colspan="8">
+                    <div class="dropdown-content">
+                        <button class="close-btn">&times;</button>
+                        <div class="detail-grid">
+                            <div class="detail-row">
+                                <div class="detail-label">User ID:</div>
+                                <div class="detail-value">${submission.telegramUserId || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Username:</div>
+                                <div class="detail-value">${submission.telegramUsername || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Full Name:</div>
+                                <div class="detail-value">${submission.telegramFullName || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">TG Username:</div>
+                                <div class="detail-value">${submission.tglUsername || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Account Type:</div>
+                                <div class="detail-value">${submission.accountType || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">2FA/Cookie Type:</div>
+                                <div class="detail-value">${submission.cookie2fa || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Friend Type:</div>
+                                <div class="detail-value">${submission.fdType || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Mail Type:</div>
+                                <div class="detail-value">${submission.mailBox || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Google Sheet:</div>
+                                <div class="detail-value">
+                                    ${submission.googleSheet ? 
+                                        `<a href="${submission.googleSheet}" target="_blank">${submission.googleSheet}</a>` : 
+                                        'N/A'}
+                                </div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Total ID:</div>
+                                <div class="detail-value">${submission.ttlId || 'N/A'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Submission Time:</div>
+                                <div class="detail-value">${submissionTime}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Timestamp Code:</div>
+                                <div class="detail-value">${submission.timestamp || 'N/A'}</div>
+                            </div>
+                        </div>
+                        ${status !== 'redo' && status !== 'received' && status !== 'back' ? `
+                        <div class="file-actions">
+                            <button class="action-btn btn-reject" data-id="${submission.id}" ${status === 'rejected' ? 'disabled' : ''}>Reject</button>
+                            <button class="action-btn btn-processing" data-id="${submission.id}" ${status === 'processing' ? 'disabled' : ''}>Processing</button>
+                            <button class="action-btn btn-approve" data-id="${submission.id}" ${status === 'approved' ? 'disabled' : ''}>Approve</button>
+                        </div>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    fileTableBody.innerHTML = tableHTML;
+    
+    // Add event listeners to dropdown buttons
+    document.querySelectorAll('.dropdown-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const submissionId = this.getAttribute('data-id');
+            const detailRow = document.getElementById(`detail-${submissionId}`);
+            const content = detailRow.querySelector('.dropdown-content');
+            content.classList.toggle('show');
+        });
+    });
+    
+    // Add event listeners to close buttons
+    document.querySelectorAll('.close-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.closest('.dropdown-content').classList.remove('show');
+        });
+    });
+    
+    // Add event listeners to action buttons
+    document.querySelectorAll('.file-actions .action-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const submissionId = this.getAttribute('data-id');
+            const action = this.classList[1].replace('btn-', '');
+            
+            handleFileAction(submissionId, action);
+        });
+    });
+    
+    // Add event listeners to checkboxes
+    document.querySelectorAll('.file-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const fileId = this.getAttribute('data-id');
+            
+            if (this.checked) {
+                selectedFiles.add(fileId);
+            } else {
+                selectedFiles.delete(fileId);
+            }
+            
+            updateBulkActions();
+        });
+    });
+    
+    // Update bulk actions visibility
+    updateBulkActions();
+}
+
+// Update local submission status without reloading from Firebase
+function updateLocalSubmissionStatus(submissionId, newStatus) {
+    const submissionIndex = allSubmissions.findIndex(s => s.id === submissionId);
+    if (submissionIndex !== -1) {
+        allSubmissions[submissionIndex].status = newStatus;
+        renderTable(); // Just refresh the UI
+    }
+}
+
+// Update bulk actions based on selected files
+function updateBulkActions() {
+    if (selectedFiles.size > 0 && currentStatusFilter === 'approved') {
+        bulkActions.classList.add('show');
+    } else {
+        bulkActions.classList.remove('show');
+    }
+    
+    // Update select all checkbox
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+    selectAllCheckbox.checked = allChecked;
+}
+
+// Handle file actions (approve, reject, processing)
+function handleFileAction(submissionId, action) {
+    // Find the submission
+    const submission = allSubmissions.find(s => s.id === submissionId);
+    
+    if (!submission) {
+        showNotification('Submission not found', 'error');
+        return;
+    }
+    
+    // Don't allow same status update
+    if (submission.status === action) {
+        showNotification(`Submission is already ${action}`, 'error');
+        return;
+    }
+    
+    // Prepare updates for Firebase
+    const updates = {};
+    const currentTime = Date.now();
+    
+    // Update status
+    updates[`/submissions/${submissionId}/status`] = action;
+    
+    // Add to status history
+    const statusHistoryItem = {
+        status: action,
+        timestamp: currentTime,
+        changedBy: 'admin' // You can change this to actual admin ID
+    };
+    
+    // Initialize statusHistory array if it doesn't exist
+    if (!submission.statusHistory) {
+        updates[`/submissions/${submissionId}/statusHistory`] = [statusHistoryItem];
+    } else {
+        // Add new status to history
+        const newHistory = [...submission.statusHistory, statusHistoryItem];
+        updates[`/submissions/${submissionId}/statusHistory`] = newHistory;
+    }
+    
+    // Update status in Firebase
+    database.ref().update(updates).then(() => {
+        showNotification(`Submission status updated to ${action}`, 'success');
+        
+        // Update local data without reloading from Firebase
+        updateLocalSubmissionStatus(submissionId, action);
+        
+        // Send Telegram notification
+        sendTelegramNotification(submission, action);
+    }).catch((error) => {
+        showNotification('Error updating status: ' + error.message, 'error');
+    });
+}
+
+// Handle bulk actions (Back, Receive)
+function handleBulkAction(action) {
+    if (selectedFiles.size === 0) {
+        showNotification('No files selected', 'error');
+        return;
+    }
+    
+    const updates = {};
+    const telegramMessages = [];
+    const currentTime = Date.now();
+    
+    selectedFiles.forEach(submissionId => {
+        const submission = allSubmissions.find(s => s.id === submissionId);
+        if (submission) {
+            // Update status
+            updates[`/submissions/${submissionId}/status`] = action;
+            
+            // Add to status history
+            const statusHistoryItem = {
+                status: action,
+                timestamp: currentTime,
+                changedBy: 'admin'
+            };
+            
+            // Initialize statusHistory array if it doesn't exist
+            if (!submission.statusHistory) {
+                updates[`/submissions/${submissionId}/statusHistory`] = [statusHistoryItem];
+            } else {
+                // Add new status to history
+                const newHistory = [...submission.statusHistory, statusHistoryItem];
+                updates[`/submissions/${submissionId}/statusHistory`] = newHistory;
+            }
+            
+            telegramMessages.push({
+                chatId: submission.telegramUserId, // Use telegramUserId instead of tgChatId
+                submission: submission,
+                action: action
+            });
+        }
+    });
+    
+    // Update status in Firebase
+    database.ref().update(updates).then(() => {
+        showNotification(`${selectedFiles.size} files status updated to ${action}`, 'success');
+        
+        // Update local data for each selected file
+        selectedFiles.forEach(submissionId => {
+            updateLocalSubmissionStatus(submissionId, action);
+        });
+        
+        // Send Telegram notifications
+        telegramMessages.forEach(msg => {
+            sendTelegramNotification(msg.submission, msg.action);
+        });
+        
+        // Clear selection
+        selectedFiles.clear();
+        updateBulkActions();
+    }).catch((error) => {
+        showNotification('Error updating status: ' + error.message, 'error');
+    });
+}
+
+// Send Telegram notification with updated message format
+function sendTelegramNotification(submission, action) {
+    const chatId = submission.telegramUserId; // Use telegramUserId
+    
+    if (!chatId) {
+        console.error('No Telegram User ID found for submission:', submission);
+        return;
+    }
+    
+    // Use the original submission date
+    const submissionDate = submission.submissionTime || new Date(submission.timestamp || Date.now()).toLocaleDateString();
+    
+    // Updated message format as requested
+    const message = `${getStatusEmoji(action)} Your submission status has been updated to ${action.toUpperCase()}.\n\n` +
+                   `Description: ${submission.description || 'N/A'}\n` +
+                   `Account Type: ${submission.accountType || 'N/A'}\n` +
+                   `2FA-Cookie: ${submission.cookie2fa || 'N/A'}\n` +
+                   `Friend Type: ${submission.fdType || 'N/A'}\n` +
+                   `Submit Date: ${submissionDate}`;
+    
+    // Simulate API call to Telegram
+    fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            console.log('Telegram message sent successfully');
+        } else {
+            console.error('Failed to send Telegram message:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Error sending Telegram message:', error);
+    });
+}
+
+// Helper function to get emoji for status
+function getStatusEmoji(action) {
+    const emojis = {
+        'approve': '✅',
+        'reject': '❌',
+        'processing': '⏳',
+        'back': '↩️',
+        'received': '📥'
+    };
+    return emojis[action] || '📋';
+}
+
+// Show notification
+function showNotification(message, type) {
+    notification.textContent = message;
+    notification.className = `notification ${type} show`;
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+// Set up event listeners
+function setupEventListeners() {
+    // Platform filter event listener
+    platformFilter.addEventListener('change', function() {
+        currentPlatformFilter = this.value;
+        renderTable();
+    });
+    
+    // Status tabs event listeners
+    statusTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            statusTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            currentStatusFilter = this.getAttribute('data-status');
+            selectedFiles.clear();
+            renderTable();
+        });
+    });
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        currentSearchTerm = this.value.trim();
+        renderTable();
+    });
+    
+    // Select all checkbox
+    selectAllCheckbox.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.file-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+            const fileId = checkbox.getAttribute('data-id');
+            
+            if (this.checked) {
+                selectedFiles.add(fileId);
+            } else {
+                selectedFiles.delete(fileId);
+            }
+        });
+        
+        updateBulkActions();
+    });
+    
+    // Bulk action buttons
+    btnBack.addEventListener('click', function() {
+        handleBulkAction('back');
+    });
+    
+    btnReceive.addEventListener('click', function() {
+        handleBulkAction('received');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.dropdown-btn') && !event.target.closest('.dropdown-content')) {
+            document.querySelectorAll('.dropdown-content').forEach(content => {
+                content.classList.remove('show');
+            });
+        }
+    });
+}
+
+// Initialize the app when the page loads
+document.addEventListener('DOMContentLoaded', initApp);
+document.addEventListener('DOMContentLoaded', initApp);
+        
+      
+    </script>
+</body>
+</html>
